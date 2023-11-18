@@ -4,6 +4,18 @@
 
 ---
 
+> ## Special Thanks
+>
+> The birth of `ONU! Server Edition` could not have happened without the help of these people:
+> 
+> <a href="https://github.com/HeZeBang/ONU/graphs/contributors">
+>  <img src="https://contrib.rocks/image?repo=HeZeBang/ONU" />
+></a>
+>
+> **- And you -**
+>
+>Made with [contrib.rocks](https://contrib.rocks).
+
 🎉 Welcome to ONU! Server Edition, a game designed for everyone in the **SI100B** course.
 
 **The core logic of this game stems from your very own `ONU` class!** We've taken the initiative to adapt certain modules to ensure seamless gameplay on your web browser. We hope that as you dive into the intricacies of debugging, you can also experience a profound sense of accomplishment.
