@@ -359,20 +359,19 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
 
     while True:
         data = await pin_wait_change('actbar')
-        match data['value'] :
-            case 'Exit Game':
+        if data['value'] == 'Exit Game' :
                 break
-            case 'Send':
+        elif data['value'] == 'Send':
                 msg = await pin['chatbox']
                 put_markdown('**`%s`**: %s' % (nickname, msg), sanitize=True, scope='msg-box')
                 chat_msgs.append((nickname, msg))
-            case 'Shutdown Server' :
-                passwd = await input("Admin Password Required :")
-                global PASSWORD
-                if passwd == PASSWORD:
-                    sys.exit()
-                else:
-                    toast('Invalid Password')
+        else :
+            passwd = await input("Admin Password Required :")
+            global PASSWORD
+            if passwd == PASSWORD:
+                sys.exit()
+            else:
+                toast('Invalid Password')
 
     refresh_task.close()
     toast("ヾ(•ω•`)o See you next time!")
