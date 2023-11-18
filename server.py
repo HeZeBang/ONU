@@ -297,7 +297,7 @@ async def main():
     
     global chat_msgs, online_users
 
-    put_markdown("## WELCOME TO 🃏ONU! <sup>Server Edition</sup>")
+    put_markdown(f"## WELCOME TO 🃏ONU! <sup>{__version__}</sup>")
     put_collapse("README (Click to hide)", put_markdown(
 f"""
 ![Latest](https://img.shields.io/github/v/tag/HeZeBang/ONU?label=Latest%20Version) ![Last Update](https://img.shields.io/github/release-date-pre/HeZeBang/ONU?label=Last%20Update)
