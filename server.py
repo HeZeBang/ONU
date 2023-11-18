@@ -1,5 +1,5 @@
 from ONU.template import * # Your ONU File
-__version__ = (1, 0, 0)
+__version__ = "v1.0.1"
 
 # ---------------------------- Game Settings ----------------------------------
 max_player_num = 7
@@ -288,27 +288,29 @@ def update_status(my_name):
     local.score = scoreNew
     local.cards = cardsNew
 
-@config(theme='dark')
+# @config(theme='dark')
 async def main():
     """
-    🃏ONU GAME!
+    🃏ONU! Server Edition
     """
     run_js(f'document.getElementsByClassName("footer")[0].innerHTML="<b>ONU!</b> is powered by PyWebIO"')
     
     global chat_msgs, online_users
 
-    put_markdown("## WELCOME TO 🃏ONU!")
+    put_markdown("## WELCOME TO 🃏ONU! <sup>Server Edition</sup>")
     put_collapse("README (Click to hide)", put_markdown(
 f"""
-🎉Welcome to `ONU`, it's a game for every one of you who's learning **SI100B**
+![Latest](https://img.shields.io/github/v/tag/HeZeBang/ONU?label=Latest%20Version) ![Last Update](https://img.shields.io/github/release-date-pre/HeZeBang/ONU?label=Last%20Update)
 
-Most of its logic is from your own `ONU`, we've re-written some module to make it work on the browser. 
-Hope you can have a great sense of accomplishment after debugging and debugging.
-This game can be played by yourself or with a robot. 
-You can also invite your friends to play together.
+🎉 Welcome to `ONU!` <sup>Server Edition</sup>, a game designed for everyone in the **SI100B** course.
 
-Want to invite friends from ShanghaiTech to join? 
-Just have them connect to **WIFI:** 🌐 `ShanghaiTech` and open the following URL:
+**The core logic of this game stems from your very own `ONU` class!** 
+We've taken the initiative to adapt certain modules to ensure seamless gameplay on your web browser. 
+We hope that as you dive into the intricacies of debugging, 
+you can also experience a profound sense of accomplishment.
+
+Interested in inviting your ShanghaiTech friends to play along?
+Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the following URL:
 
 [http://{session_info.user_ip}:{PORT}](http://{session_info.user_ip}:{PORT})
 
