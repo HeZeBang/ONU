@@ -1,16 +1,7 @@
-from ONU.template import * # Your ONU File
+from ONU_source.template import * # Your ONU File
 __version__ = "v1.0.1"
 
-# ---------------------------- Game Settings ----------------------------------
-max_player_num = 7
-'''
-### Note:
-If the number of online player is less than `max_player_num`
-and the first player posted an action,
-it will add ROBOT automatically.
-'''
-
-hand_card_num = 14
+# ---------------------------- Game Settings From UNO source file ----------------------------------
 
 COLORS = [col for col in Color]
 '''
@@ -22,22 +13,13 @@ EFFECTS = [Effect.BAN, Effect.CHANGE_COLOR, Effect.PLUS_TWO]
 Available Effect
 '''
 
-SPECIAL = 2
-'''
-Number of sets of Special Cards
-'''
-
-NUMERIC = 3
-'''
-Number of sets of Numeric Cards
-'''
-
-PORT = 8082 # Recommend 8081~8088
+game = None
 
 # ---------------------------- Main Program -----------------------------------
 import random
 import types
 import itertools
+import argparse
 
 def allKindofCards() -> List[Card]:
     '''
@@ -50,8 +32,6 @@ def allKindofCards() -> List[Card]:
     random.shuffle(cardList)
     return cardList
 
-
-game = Game(allKindofCards(), max_player_num, hand_card_num, 0)
 chat_msgs = []  # The chat message history. The item is (name, message content)
 cur = 0
 
@@ -183,7 +163,7 @@ async def refresh_msg(my_name):
 
         last_idx = len(chat_msgs)
     
-        global cur
+        global cur, game
         notend = True
         cur_id, last_card, is_last_player_drop, plus_two_cnt, hands = game.get_info()
 
@@ -199,7 +179,7 @@ async def refresh_msg(my_name):
                 Player.action = Player.action_old
                 
             elif (len(online_users) > cur and online_users[cur] == "") or (cur >= len(online_users)):
-                # Robot played by your own action
+                # Robot played by Player.action() from your ONU_source
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", markdownlize(f"🤖{cur + 1}", action)))
                 cur = (info[0] + 1) % max_player_num
@@ -209,12 +189,16 @@ async def refresh_msg(my_name):
         if not notend: # Ended
             userLst = online_users + ["ROBOT" for _ in range(max_player_num - len(online_users))]
             update_status(my_name)
-            msg = (f"GAME OVER", f"\n# 🏆Player `{userLst[game.get_winner()]}` WIN!\nThe session will close after 10s")
+            msg = (f"GAME OVER", f"\n# 🏆Player `{userLst[game.get_winner()]}` WIN!\nThe next game will begin in 10s")
             put_markdown('%s\n%s' % msg, sanitize=True, scope='msg-box')
             chat_msgs.append(msg)
             
+            reset_game()
+            
             await asyncio.sleep(10)
-            sys.exit()    
+            
+            update_status(my_name)
+            
 
 COLORMAPPING = {
     # background, foreground
@@ -342,8 +326,8 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
             online_users[i] = nickname
     if(nickname not in online_users):
         online_users.append(nickname)
-    chat_msgs.append(('📢', '`%s` joins the room. %s users currently online' % (nickname, sum([i != "" for i in online_users]))))
-    put_markdown('`📢`: `%s` join the room. %s users currently online' % (nickname, (online_users)), sanitize=True, scope='msg-box')
+    chat_msgs.append(('📢', '`%s` joins the room. users currently online : `%s`' % (nickname, (", ".join(online_users)))))
+    put_markdown('`📢`: `%s` join the room. users currently online : `%s`' % (nickname, (", ".join(online_users))), sanitize=True, scope='msg-box')
 
     @defer_call
     def on_close():
@@ -355,11 +339,15 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
         chat_msgs.append(('📢', '`%s` leaves the room. %s users currently online' % (nickname, sum([i != "" for i in online_users]))))
         
         if(all([user == "" for user in online_users])):
-            sys.exit()
+            if RUN_ON_SERVER :
+                reset_game()
+            else :
+                sys.exit()
 
     put_markdown("## Chat with friends")
     put_input('chatbox')
-    put_actions(name = "msgact", label = "", buttons = ['Send', 'Exit Game'])
+    put_actions(name = "actbar", label = "", buttons = ['Send', 'Exit Game',{'label': 'Shutdown Server','type' : 'submit',
+                                                                             'value': 'Shutdown Server', 'color': 'danger'}])
     update_status(nickname)
     put_markdown("## Your Cards")
     put_scope("cards")
@@ -370,17 +358,51 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
     refresh_task = run_async(refresh_msg(nickname))
 
     while True:
-        data = await pin_wait_change('msgact')
-        if data['value'] == 'Exit Game':
-            break
-        else:
-            msg = await pin['chatbox']
-            put_markdown('**`%s`**: %s' % (nickname, msg), sanitize=True, scope='msg-box')
-            chat_msgs.append((nickname, msg))
+        data = await pin_wait_change('actbar')
+        match data['value'] :
+            case 'Exit Game':
+                break
+            case 'Send':
+                msg = await pin['chatbox']
+                put_markdown('**`%s`**: %s' % (nickname, msg), sanitize=True, scope='msg-box')
+                chat_msgs.append((nickname, msg))
+            case 'Shutdown Server' :
+                passwd = await input("Admin Password Required :")
+                global PASSWORD
+                if passwd == PASSWORD:
+                    sys.exit()
+                else:
+                    toast('Invalid Password')
 
     refresh_task.close()
     toast("ヾ(•ω•`)o See you next time!")
+    
+def reset_game() :
+    global cur, game
+    game = Game(allKindofCards(), max_player_num, hand_card_num, 0)
+    cur = 0
 
+# ---------------------------- Settings From Parse ----------------------------------
+
+def get_argparser():
+    confparser = argparse.ArgumentParser(description='Initializing ONU game server.')
+    argconf = confparser.add_argument_group("Argument config")
+    argconf.add_argument("-p", "--player-num", type = int, default = 7, help = "Player numbers (if forced started, "
+                         "the remaining slots will be filled with bot)")
+    argconf.add_argument("-hd", "--hand-card-num", type = int, default = 14, help = "Initial hand card numbers")
+    argconf.add_argument("-s", "--special-card-sets", type = int, default = 2, help = "Number of sets of Special Cards")
+    argconf.add_argument("-n", "--numeric-card-sets", type = int, default = 3, help = "Number of sets of Numeric Cards")
+    argconf.add_argument("--port", type = int, default = 8082, help = "Recommend port : 8081 ~ 8088")
+    argconf.add_argument("-r", "--run-on-server", default = False, action="store_true", help = "If this is set True, the server will "
+                                                                                       "not stop running after all players exit.")
+    argconf.add_argument("--password", type = str, default = "123456", help = "Server shutting down password")
+    return confparser
     
 if __name__ == '__main__':
-    start_server(main, debug=True, port=PORT) 
+    args = get_argparser().parse_args()
+    global max_player_num, hand_card_num, SPECIAL, NUMERIC, PORT, RUN_ON_SERVER
+    max_player_num, hand_card_num = args.player_num, args.hand_card_num
+    SPECIAL, NUMERIC, PORT, RUN_ON_SERVER = args.special_card_sets, args.numeric_card_sets, args.port, args.run_on_server
+    PASSWORD = args.password
+    game = Game(allKindofCards(), max_player_num, hand_card_num, 0)
+    start_server(main, debug = True, port = PORT)
