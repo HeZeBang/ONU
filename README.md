@@ -1,6 +1,6 @@
 # Introducing 🃏ONU! <sup>Server Edition</sup>
 
-<a href="https://github.com/HeZeBang/ONU/releases" rel="nofollow"><img alt="GitHub tag (with filter)" src="https://img.shields.io/github/v/tag/HeZeBang/ONU?label=Download%20Latest&link=https%3A%2F%2Fgithub.com%2FHeZeBang%2FONU%2Freleases"></a> ![Last Update](https://img.shields.io/github/release-date-pre/HeZeBang/ONU?label=Last%20Update)
+<a href="https://github.com/HeZeBang/ONU/releases" rel="nofollow"><img alt="GitHub tag (with filter)" src="https://img.shields.io/github/v/tag/HeZeBang/ONU?label=Download%20Latest&link=https%3A%2F%2Fgithub.com%2FHeZeBang%2FONU%2Freleases"></a> [![Last Update](https://img.shields.io/github/release-date-pre/HeZeBang/ONU?label=Last%20Update)](https://github.com/HeZeBang/ONU/commits/main)
 
 ---
 
@@ -57,3 +57,8 @@ Then have your friends connect to the same WiFi network, such as `ShanghaiTech`.
 - pywebio
 - pywebio_battery
 
+## Contribution
+
+Want to make a contribution?
+
+Please refer to [Contribution Guideline](./Contribution.md)
