@@ -57,3 +57,8 @@ Then have your friends connect to the same WiFi network, such as `ShanghaiTech`.
 - pywebio
 - pywebio_battery
 
+## Contribution
+
+Want to make a contribution?
+
+Please refer to [Contribution Guideline](./Contribution.md)
