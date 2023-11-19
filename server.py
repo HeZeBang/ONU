@@ -311,10 +311,8 @@ async def main():
     """
     🃏ONU! Server Edition
     """
-    with redirect_stdout():
-        print("Hello.")
     
-    run_js(f'document.getElementsByClassName("footer")[0].innerHTML="<b>ONU!</b> is powered by PyWebIO / Special Thanks for <img src="https://contrib.rocks/image?repo=HeZeBang/ONU" style="max-height: 50%;">"')
+    run_js(f'document.getElementsByClassName("footer")[0].innerHTML="<b>ONU!</b> is powered by PyWebIO / Special Thanks for <img src=\\"https://contrib.rocks/image?repo=HeZeBang/ONU\\" style=\\"max-height: 50%;\\">"')
     
     global chat_msgs, online_users
 
