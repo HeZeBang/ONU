@@ -360,7 +360,7 @@ def htmlize(who: str, action: Tuple) -> str:
 
 async def refresh_msg(myName):
     """
-    send new message to cur_playerrent session
+    send new message to current session
     """
     global chat_msgs
     lastIndex = len(chat_msgs)
@@ -376,7 +376,7 @@ async def refresh_msg(myName):
                       [put_markdown(m[1]),
                       put_table([game.get_scores()],
                                 [_ if _ != "" else "ROBOT" for _ in online_users] + ["ROBOT" for _ in range(max_player_num - len(online_users))])])
-            elif m[0] != myName:  # only refresh message that not sent by cur_playerrent user
+            elif m[0] != myName:  # only refresh message that not sent by current user
                 put_markdown('`%s`: %s' % m, sanitize=True, scope='msg-box')
         
         # update_status(myName)
@@ -491,7 +491,7 @@ you can also experience a profound sense of accomplishment.
 Interested in inviting your ShanghaiTech friends to play along?
 Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the following URL:
 
-[http://{session_info.user_ip}:{PORT}](http://{session_info.user_ip}:{PORT})
+[http://{session_info.server_host}](http://{session_info.server_host})
 
 ***References:***
 [Chat_Room - PyWebIO Demo](https://github.com/wang0618/PyWebIO/blob/dev/demos/chat_room.py)
@@ -525,8 +525,8 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
             online_users[i] = nickname
     if(nickname not in online_users):
         online_users.append(nickname)
-    chat_msgs.append(('📢', '`%s` joins the room. users cur_playerrently online : `%s`' % (nickname, (", ".join(online_users)))))
-    put_markdown('`📢`: `%s` join the room. users cur_playerrently online : `%s`' % (nickname, (", ".join(online_users))), sanitize=True, scope='msg-box')
+    chat_msgs.append(('📢', '`%s` joins the room. users currently online : `%s`' % (nickname, (", ".join(online_users)))))
+    put_markdown('`📢`: `%s` join the room. users currently online : `%s`' % (nickname, (", ".join(online_users))), sanitize=True, scope='msg-box')
 
     @defer_call
     def on_close():
@@ -535,7 +535,7 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
             online_users[index] = ""
         else:
             online_users.remove(nickname)
-        chat_msgs.append(('📢', '`%s` leaves the room. %s users cur_playerrently online' % (nickname, sum([i != "" for i in online_users]))))
+        chat_msgs.append(('📢', '`%s` leaves the room. %s users currently online' % (nickname, sum([i != "" for i in online_users]))))
         
         if(all([user == "" for user in online_users])):
             if RUN_ON_SERVER :
