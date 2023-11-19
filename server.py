@@ -175,7 +175,7 @@ def init_card_style():
       width: 100px;
       height: 150px;
       background-color: #d0d0d0;
-      border: none;
+      border: 0px solid #6dd6ff;
       border-radius: 12px;
       display: flex;
       flex-direction: column;
