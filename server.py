@@ -151,7 +151,7 @@ def add_scipt_dyn(lst: list[str]):
 COLORMAPPING = {
     # background, foreground
     Color.RED   : ("#F44336", "#FFFFFF"),
-    Color.YELLOW: ("#FFEB3B", "#212121"),
+    Color.YELLOW: ("#F0C05A", "#212121"),
     Color.GREEN : ("#4CAF50", "#FFFFFF"),
     Color.BLUE  : ("#2196F3", "#FFFFFF"),
     Color.CYAN  : ("#00BCD4", "#FFFFFF"),
@@ -184,17 +184,17 @@ def init_card_style():
       margin: 0 10px 10px 10px; /* 调整卡牌的外边距 */
       cursor: pointer;
       transition: all 0.3s ease-in-out;
-      box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
 """,
         ".onucard:hover":
 """
       transform: translateY(-5px);
-      box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+      box-shadow: 10px 10px 20px #bebebe, -10px -10px 20px #ffffff;
 """,
         ".onucard.selected":
 """
-border: 4px solid #3498db;
-opacity: 0.4;
+border: 4px solid #6dd6ff;
+opacity: 0.6;
 """,
         ".onucard span":
 """
@@ -205,6 +205,7 @@ opacity: 0.4;
 """
       background-color: #bdc3c7; /* 灰色背景表示无效卡牌 */
       cursor: not-allowed;
+      color: #fff
 """})
     
     
@@ -307,7 +308,7 @@ opacity: 0.4;
   }
   window.onload += adjustCardSize;
   window.onresize += adjustCardSize;
-"""
+""",
 ])
 
 def card_buttons(valid_cards: List[Card], all_cards: List[Card]):
@@ -394,14 +395,14 @@ async def refresh_msg(my_name):
                 local.action = await action_re(hands[cur].get_cards(), last_card, is_last_player_drop)
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"{my_name}", action)))
-                scroll_to("msg-box")
+                # scroll_to("msg-box")
                 cur = (info[0] + 1) % max_player_num
             elif (len(online_users) > cur and online_users[cur] == "") or (cur >= len(online_users)):
                 # Robot played by your own action
                 Player.action = Player.action_old
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"🤖{cur + 1}", action)))
-                scroll_to("msg-box")
+                # scroll_to("msg-box")
                 cur = (info[0] + 1) % max_player_num
                 await asyncio.sleep(0.5)
         # except ValueError: # NoneType means player didn't finish dropping a card successfully
@@ -500,8 +501,9 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
                 put_column(
                     [
                         put_scope("status"), 
-                        put_scrollable(put_scope("score"), height=192)
-                    ], size='20% 1px 80%')
+                        None,
+                        put_scrollable([put_scope("score")], height=192)
+                    ], size='20% 5px 80%')
             ],
             size='72% 5px 28%')
     try:
@@ -509,7 +511,7 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
         if(nickname is None or nickname in online_users):
             nickname = await input("What's your name...", required=True,
                 validate=lambda n: 'Nickname already exists!' 
-                    if n in online_users or n == '📢' else None)
+                    f n in online_users or n == '📢' else None)
         else:
             toast(f"🎉Welcome back, {nickname}")
         set_cookie("name", nickname, 7)
@@ -538,7 +540,7 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
                 reset_game()
             else :
                 sys.exit()
-
+    
     put_markdown("## 💬 Chat with friends")
     put_input('chatbox')
     put_actions(name = "actbar", label = "", buttons = ['Send', 'Exit Game',{'label': '🛑Shutdown Server','type' : 'submit',
