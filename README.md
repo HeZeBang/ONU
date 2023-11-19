@@ -51,3 +51,9 @@ Use **your own web address** to access the application
 
 Then have your friends connect to the same WiFi network, such as `ShanghaiTech`. Afterward, share the **web address** with them to embark on the gaming experience together.
 
+## Deploy Requirements
+
+- Python >= 3.10 (For return value typing in [PEP 604](https://peps.python.org/pep-0604/) and `match-case` statements)
+- pywebio
+- pywebio_battery
+
