@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNO Game</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    #cardContainer {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap; /* 新增的样式：换行 */
+      margin: 0 -5px; /* 新增的样式：负边距 */
+    }
+
+    .card {
+      width: 100px;
+      height: 150px;
+      background-color: #f5e1da; /* 莫兰迪色调 */
+      border: none;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0 10px 10px 10px; /* 调整卡牌的外边距 */
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .card.selected {
+      border: 4px solid #3498db; /* 更粗的选中状态边框颜色 */
+    }
+
+    .card.invalid {
+      background-color: #bdc3c7; /* 灰色背景表示无效卡牌 */
+      cursor: not-allowed;
+    }
+
+    .card span {
+      font-family: 'Muli', sans-serif;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .red {
+      background-color: #e44d42; /* 莫兰迪红 */
+    }
+
+    .blue {
+      background-color: #559cad; /* 莫兰迪蓝 */
+    }
+
+    .green {
+      background-color: #8cc84b; /* 莫兰迪绿 */
+    }
+
+    .yellow {
+      background-color: #f0c05a; /* 莫兰迪黄 */
+    }
+
+    #playButton {
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #3498db; /* 按钮颜色 */
+      color: #fff; /* 文字颜色 */
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #playButton:disabled {
+      background-color: #95a5a6; /* 禁用状态下的按钮颜色 */
+      cursor: not-allowed;
+    }
+
+    /* 媒体查询：当屏幕宽度小于600px时调整卡牌宽度 */
+    @media (max-width: 600px) {
+      .card {
+        width: 80px;
+        height: 120px;
+        margin: 0 5px 10px 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="cardContainer">
+  <!-- 添加更多卡牌以测试响应式设计 -->
+  <button class="card red" onclick="selectCard(this)">
+    <span>5</span>
+  </button>
+
+  <button class="card blue invalid" onclick="selectCard(this)">
+    <span>Skip</span>
+  </button>
+
+  <button class="card green" onclick="selectCard(this)">
+    <span>8</span>
+  </button>
+
+  <button class="card yellow invalid" onclick="selectCard(this)">
+    <span>Reverse</span>
+  </button>
+</div>
+
+<button id="playButton" onclick="playCard()" disabled>出牌</button>
+<button onclick="addCards(3)">添加3张卡牌</button>
+<button onclick="removeCards(2)">移除2张卡牌</button>
+<button onclick="clearCards()">清空卡牌</button>
+
+<script>
+  function toggleValid(cardsnum) {
+    for (var i = 0; i < cardsnum.length; i++) {
+      cards = cardContainer.querySelectorAll('.card');
+      cards[cardsnum[i]].classList.toggle("invalid");
+    }
+  }
+
+  function selectCard(element) {
+    // 如果卡牌被标记为无效，则不执行选中操作
+    if (element.classList.contains('invalid')) {
+      return;
+    }s
+
+    // 移除其他选中卡牌的选中状态
+    document.querySelectorAll('.card').forEach(card => {
+      if (card !== element) {
+        card.classList.remove('selected');
+      }
+    });
+
+    // 切换当前卡牌的选中状态
+    element.classList.toggle('selected');
+
+    // 更新出牌按钮的状态
+    updatePlayButtonState();
+  }
+
+  function updatePlayButtonState() {
+    const selectedCards = document.querySelectorAll('.card.selected');
+    const playButton = document.getElementById('playButton');
+    
+    // 如果有选中的卡牌，启用按钮，否则禁用按钮
+    playButton.disabled = selectedCards.length === 0/* || selectedCards.some(card => card.classList.contains('invalid'))*/;
+  }
+
+  function playCard() {
+    const selectedCard = document.querySelector('.card.selected');
+    
+    if (selectedCard) {
+      const cardIndex = Array.from(selectedCard.parentElement.children).indexOf(selectedCard);
+      alert("出牌成功，卡牌序号：" + cardIndex);
+    }
+  }
+
+  function addCards(count) {
+    const cardContainer = document.getElementById('cardContainer');
+
+    for (let i = 0; i < count; i++) {
+      const card = document.createElement('button');
+      card.className = 'card';
+      card.onclick = function() {
+        selectCard(this);
+      };
+      const randomColor = getRandomColor();
+      card.classList.add(randomColor);
+      card.innerHTML = '<span>New</span>';
+      cardContainer.appendChild(card);
+    }
+
+    // 调整卡牌大小
+    adjustCardSize();
+  }
+
+  function removeCards(count) {
+    const cardContainer = document.getElementById('cardContainer');
+    const cards = cardContainer.querySelectorAll('.card');
+
+    for (let i = 0; i < count && cards.length > 0; i++) {
+      const card = cards[cards.length - 1];
+      card.parentNode.removeChild(card);
+    }
+
+    // 调整卡牌大小
+    adjustCardSize();
+  }
+
+  function clearCards() {
+    const cardContainer = document.getElementById('cardContainer');
+    cardContainer.innerHTML = '';
+
+    // 调整卡牌大小
+    adjustCardSize();
+  }
+
+  function getRandomColor() {
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  // 自动调整卡牌大小的函数
+  function adjustCardSize() {
+    const cardContainer = document.getElementById('cardContainer');
+    const cards = cardContainer.querySelectorAll('.card');
+    
+    // 当卡牌数量超过一定阈值时，减小卡牌尺寸
+    if (cards.length > 8) {
+      cards.forEach(card => {
+        card.style.width = '80px';
+        card.style.height = '120px';
+      });
+    } else {
+      cards.forEach(card => {
+        card.style.width = '100px';
+        card.style.height = '150px';
+      });
+    }
+  }
+
+  // 在页面加载和窗口大小改变时调用自动调整卡牌大小的函数
+  window.onload = adjustCardSize;
+  window.onresize = adjustCardSize;
+</script>
+
+</body>
+</html>
