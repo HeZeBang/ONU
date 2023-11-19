@@ -23,7 +23,7 @@ def get_argparser():
     argconf = confparser.add_argument_group("Argument config")
     argconf.add_argument("-p", "--player-num", type = int, default = 7, help = "Player numbers (if forced started, "
                          "the remaining slots will be filled with bot)")
-    argconf.add_argument("-hd", "--hand-card-num", type = int, default = 14, help = "Initial hand card numbers")
+    argconf.add_argument("-hd", "--hand-card-num", type = int, default = 9, help = "Initial hand card numbers")
     argconf.add_argument("-s", "--special-card-sets", type = int, default = 2, help = "Number of sets of Special Cards")
     argconf.add_argument("-n", "--numeric-card-sets", type = int, default = 3, help = "Number of sets of Numeric Cards")
     argconf.add_argument("--port", type = int, default = 8082, help = "Recommend port : 8081 ~ 8088")
@@ -51,38 +51,6 @@ def allKindofCards() -> List[Card]:
 
 chat_msgs = []  # The chat message history. The item is (name, message content)
 cur = 0
-
-def card_buttons(valid_cards: List[Card], all_cards: List[Card]):
-    '''
-    Return a List[Dict] to `put_buttons`
-    '''
-    lstBtn = [{
-                    "label":"PASS",
-                    "value":-1,
-                    "color":"danger",
-                    }]
-    for i in all_cards:
-        if i in valid_cards:
-            if isinstance(i, NumericCard):
-                lstBtn.append({
-                    "label":repr(i),
-                    "value":all_cards.index(i),
-                    "color":"primary",
-                    })
-            else:
-                lstBtn.append({
-                    "label":repr(i),
-                    "value":all_cards.index(i),
-                    "color":"warning",
-                    })
-        else:
-            lstBtn.append({
-                    "label":repr(i),
-                    "value":all_cards.index(i),
-                    "color":'secondary',
-                    "disabled":True
-                    })
-    return lstBtn
 
 async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: bool) -> Tuple[ActionType, Card | None]: 
     '''
@@ -120,9 +88,14 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
 
     if valid_cards:
         toast("Your Turn!", color="success")
-        idx = await actions("Your Turn!",card_buttons(valid_cards, cards))
-        if idx == -1:
-            return ActionType.PASS, None
+        scroll_to("cards")
+        idx = -1
+        while(idx == -1):
+            ret = await actions("Your Turn!",card_buttons(valid_cards, cards))
+            if ret == -1:
+                run_js("toggleValid([])")
+                return ActionType.PASS, None
+            idx = int(await eval_js("playCard()"))
         return ActionType.DROP, cards[idx]
     
     toast("😭Oops, you have NO valid cards!", color='warning')
@@ -146,7 +119,7 @@ try:
     from pywebio import start_server
     from pywebio.input import *
     from pywebio.output import *
-    from pywebio.session import defer_call, info as session_info, run_async, local, set_env, run_js
+    from pywebio.session import defer_call, info as session_info, run_async, local, set_env, run_js, eval_js
     from pywebio.platform import config
     from pywebio.pin import *
     from pywebio_battery import *
@@ -160,8 +133,227 @@ MAX_MESSAGES_CNT = 10 ** 4
 
 online_users = []
 
+# ------------------------------- Soft UI -------------------------------------
+# dev/softui
+    
+def add_style_dyn(dic: dict):
+    '''
+    Add `<style>` block by dict{name: str,}
+    '''
+    put_html(f"<style>\n{' '.join([(key + '{' + dic[key] + '}') for key in dic])}\n</style>")
+
+def add_scipt_dyn(lst: list[str]):
+    '''
+    Add `<script>` block by list
+    '''
+    put_html(f"<script>\n{' '.join(lst)}\n</script>")
+
+COLORMAPPING = {
+    # background, foreground
+    Color.RED   : ("#F44336", "#FFFFFF"),
+    Color.YELLOW: ("#FFEB3B", "#212121"),
+    Color.GREEN : ("#4CAF50", "#FFFFFF"),
+    Color.BLUE  : ("#2196F3", "#FFFFFF"),
+    Color.CYAN  : ("#00BCD4", "#FFFFFF"),
+    Color.ORANGE: ("#FF9800", "#FFFFFF"),
+    Color.PURPLE: ("#9C27B0", "#FFFFFF"),
+    Color.WHITE : ("#F9F9F9", "#212121"),
+    Color.BLACK : ("#1F1F1F", "#FFFFFF"),
+    Color.VIOLET: ("#4F2F4F", "#FFFFFF")
+}
+
+EFFECTMAPPING = {
+    Effect.BAN  : "🚫",
+    Effect.CHANGE_COLOR: "🎨",
+    Effect.PLUS_TWO: "➕2️⃣"
+}
+
+def init_card_style():
+    add_style_dyn({
+        ".onucard":
+"""
+      width: 100px;
+      height: 150px;
+      background-color: #d0d0d0;
+      border: none;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0 10px 10px 10px; /* 调整卡牌的外边距 */
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.1);
+""",
+        ".onucard:hover":
+"""
+      transform: translateY(-5px);
+      box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+""",
+        ".onucard.selected":
+"""
+border: 4px solid #3498db;
+opacity: 0.4;
+""",
+        ".onucard span":
+"""
+      font-size: 20px;
+      font-weight: bold;
+""",
+        ".onucard.invalid":
+"""
+      background-color: #bdc3c7; /* 灰色背景表示无效卡牌 */
+      cursor: not-allowed;
+"""})
+    
+    
+    add_style_dyn(dict([(f".{color.name}",
+            f"background: {COLORMAPPING[color][0]}; color: {COLORMAPPING[color][1]};") 
+            for color in COLORS]))
+    
+    add_style_dyn({".pywebio-scope-cards":
+"""
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap; /* 新增的样式：换行 */
+      margin: 0 -5px; /* 新增的样式：负边距 */
+"""})
+    
+    add_style_dyn({"#cardContainer":
+"""
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap; /* 新增的样式：换行 */
+      margin: 0 -5px; /* 新增的样式：负边距 */
+"""})
+    
+    add_scipt_dyn([
+"""
+  function selectCard(element) {
+    // 如果卡牌被标记为无效，则不执行选中操作
+    if (element.classList.contains('invalid')) {
+      return;
+    }
+    // 移除其他选中卡牌的选中状态
+    document.querySelectorAll('.onucard').forEach(card => {
+      if (card !== element) {
+        card.classList.remove('selected');
+      }
+    });
+
+    // 切换当前卡牌的选中状态
+    element.classList.toggle('selected');
+
+    // 更新出牌按钮的状态
+    //updatePlayButtonState();
+  }
+""",
+"""
+  /*function updatePlayButtonState() {
+    const selectedCards = document.querySelectorAll('.onucard.selected');
+    const playButton = document.getElementById('playButton');
+    
+    // 如果有选中的卡牌，启用按钮，否则禁用按钮
+    playButton.disabled = selectedCards.length === 0;
+  }*/
+""",
+"""
+  function playCard() {
+    const selectedCard = document.querySelector('.onucard.selected');
+    
+    if (selectedCard) {
+      const cardIndex = Array.from(selectedCard.parentElement.children).indexOf(selectedCard);
+      // alert("出牌成功，卡牌序号：" + cardIndex);
+      return cardIndex == undefined? -1 : cardIndex
+    }
+    else {
+      return -1
+    }
+    
+  }
+""",
+"""
+  function toggleValid(cardsnum) {
+    cards = cardContainer.querySelectorAll('.onucard');
+    if(cardsnum.length == 0)
+      for (var i = 0; i < cards.length; i++)
+        cards[i].classList.remove("invalid")
+    else
+      for (var i = 0; i < cardsnum.length; i++) {
+        cards[cardsnum[i]].classList.add("invalid");
+        cards[cardsnum[i]].classList.remove('selected');
+      }
+  }
+""",
+"""
+  // 自动调整卡牌大小的函数
+  function adjustCardSize() {
+    const cardContainer = document.getElementById('cardContainer');
+    const cards = cardContainer.querySelectorAll('.onucard');
+    
+    // 当卡牌数量超过一定阈值时，减小卡牌尺寸
+    if (cards.length > 8) {
+      cards.forEach(card => {
+        card.style.width = '88px';
+        card.style.height = '100px';
+      });
+    } else {
+      cards.forEach(card => {
+        card.style.width = '100px';
+        card.style.height = '150px';
+      });
+    }
+  }
+  window.onload += adjustCardSize;
+  window.onresize += adjustCardSize;
+"""
+])
+
+def card_buttons(valid_cards: List[Card], all_cards: List[Card]):
+    '''
+    Return a List[Dict] to `put_button`
+    '''
+    run_js(f"toggleValid({str([i for i in range(len(all_cards)) if all_cards[i] not in valid_cards])})")
+    lstBtn = [{
+                    "label":"PASS",
+                    "value":-1,
+                    "color":"danger",
+              },{
+                    "label":"DROP!",
+                    "value": 1,
+                    "color":"primary",
+              }]
+
+    return lstBtn
+
+def msg_card(card: Card) -> str:
+    if isinstance(card, NumericCard):
+        return f'<code style="white-space: nowrap; background: {COLORMAPPING[card.get_color()][0]}; color: {COLORMAPPING[card.get_color()][1]};">{card.get_color().name} {card.get_number()}</code>'
+    elif isinstance(card, SpecialCard):
+        return f'<code style="white-space: nowrap; background: {COLORMAPPING[card.get_color()][0]}; color: {COLORMAPPING[card.get_color()][1]};">{card.get_color().name} {EFFECTMAPPING[card.get_effect()]}</code>'
+
+def colorful_cards(cards: List[Card]):
+    """
+    Give the colorfuled card output to a table
+    """
+    result = []
+    for card in cards:
+        if isinstance(card, NumericCard):
+            result.append(
+                (f'<button class="onucard {card.get_color().name}" onclick="selectCard(this)"><span>{card.get_color().name}<br><big>{card.get_number()}</big></span></button>'))
+            
+        elif isinstance(card, SpecialCard):
+            result.append(
+                (f'<button class="onucard {card.get_color().name}" onclick="selectCard(this)"><span>{card.get_color().name}<br><big>{EFFECTMAPPING[card.get_effect()]}</big></span></button>'))
+                # (f'<code style="white-space: nowrap; font-size: {size}; background: {COLORMAPPING[card.get_color()][0]}; color: {COLORMAPPING[card.get_color()][1]};">{card.get_color().name} {EFFECTMAPPING[card.get_effect()]}</code>'))
+        else:
+            pass
+
+    return result
+
 def htmlize(who: str, action: Tuple) -> str:
-    return f"<code>{who}</code>&emsp;<b>{action[0].name}</b>&emsp;" + (f"{colorful_cards([action[1]])[0]}" if action[1] is not None else "")
+    return f"<code>{who}</code>&emsp;<b>{action[0].name}</b>&emsp;" + (f"{msg_card(action[1])}" if action[1] is not None else "")
 
 async def refresh_msg(my_name):
     """
@@ -202,12 +394,14 @@ async def refresh_msg(my_name):
                 local.action = await action_re(hands[cur].get_cards(), last_card, is_last_player_drop)
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"{my_name}", action)))
+                scroll_to("msg-box")
                 cur = (info[0] + 1) % max_player_num
             elif (len(online_users) > cur and online_users[cur] == "") or (cur >= len(online_users)):
                 # Robot played by your own action
                 Player.action = Player.action_old
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"🤖{cur + 1}", action)))
+                scroll_to("msg-box")
                 cur = (info[0] + 1) % max_player_num
                 await asyncio.sleep(0.5)
         # except ValueError: # NoneType means player didn't finish dropping a card successfully
@@ -231,45 +425,6 @@ async def refresh_msg(my_name):
             await asyncio.sleep(10)
             
             update_status(my_name)
-            
-
-COLORMAPPING = {
-    # background, foreground
-    Color.RED   : ("#F44336", "#FFFFFF"),
-    Color.YELLOW: ("#FFEB3B", "#212121"),
-    Color.GREEN : ("#4CAF50", "#FFFFFF"),
-    Color.BLUE  : ("#2196F3", "#FFFFFF"),
-    Color.CYAN  : ("#00BCD4", "#FFFFFF"),
-    Color.ORANGE: ("#FF9800", "#FFFFFF"),
-    Color.PURPLE: ("#9C27B0", "#FFFFFF"),
-    Color.WHITE : ("#F9F9F9", "#212121"),
-    Color.BLACK : ("#1F1F1F", "#FFFFFF"),
-    Color.VIOLET: ("#4F2F4F", "#FFFFFF")
-}
-
-EFFECTMAPPING = {
-    Effect.BAN  : "🚫",
-    Effect.CHANGE_COLOR: "🎨",
-    Effect.PLUS_TWO: "➕2️⃣"
-}
-
-def colorful_cards(cards: List[Card], size: str = "80%"):
-    """
-    Give the colorfuled card output to a table
-    """
-    result = []
-    for card in cards:
-        if isinstance(card, NumericCard):
-            result.append(
-                (f'<code style="white-space: nowrap; font-size: {size}; background: {COLORMAPPING[card.get_color()][0]}; color: {COLORMAPPING[card.get_color()][1]};">{card.get_color().name} {card.get_number()}</code>'))
-            
-        elif isinstance(card, SpecialCard):
-            result.append(
-                (f'<code style="white-space: nowrap; font-size: {size}; background: {COLORMAPPING[card.get_color()][0]}; color: {COLORMAPPING[card.get_color()][1]};">{card.get_color().name} {EFFECTMAPPING[card.get_effect()]}</code>'))
-        else:
-            pass
-
-    return result
 
 def update_status(my_name):
     """
@@ -297,14 +452,15 @@ def update_status(my_name):
             strict=False)),
             ["Player", "Left"],
             scope = "score")
-    if(local.cards != cardsNew):
+    if(local.onucards != cardsNew):
         clear("cards")
-        put_html(f'<div style="line-height: 220%">{" ".join(colorful_cards(cardsNew, "120%"))}</div>', scope = "cards")
+        put_html(f'<div id="cardContainer" style="line-height: 220%">{" ".join(colorful_cards(cardsNew))}</div>', scope = "cards")
+        run_js("adjustCardSize()")
 
         
     local.status = statusNew
     local.score = scoreNew
-    local.cards = cardsNew
+    local.onucards = cardsNew
 
 # @config(theme='dark')
 async def main():
@@ -312,6 +468,7 @@ async def main():
     🃏ONU! Server Edition
     """
     
+    init_card_style()
     run_js(f'document.getElementsByClassName("footer")[0].innerHTML="<b>ONU!</b> is powered by PyWebIO / Special Thanks for <img src=\\"https://contrib.rocks/image?repo=HeZeBang/ONU\\" style=\\"max-height: 50%;\\">"')
     
     global chat_msgs, online_users
@@ -389,7 +546,7 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
     update_status(nickname)
     put_markdown("## 🎴 Your Cards")
     put_scope("cards")
-    local.cards=[]
+    local.onucards=[]
     update_status(nickname)
     scroll_to("cards")
 
