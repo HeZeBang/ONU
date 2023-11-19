@@ -96,6 +96,8 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
                 run_js("toggleValid([])")
                 return ActionType.PASS, None
             idx = int(await eval_js("playCard()"))
+            if cards[idx] not in valid_cards:
+                idx = -1
         return ActionType.DROP, cards[idx]
     
     toast("😭Oops, you have NO valid cards!", color='warning')
