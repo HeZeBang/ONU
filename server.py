@@ -511,7 +511,7 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
         if(nickname is None or nickname in online_users):
             nickname = await input("What's your name...", required=True,
                 validate=lambda n: 'Nickname already exists!' 
-                    for n in online_users or n == '📢' else None)
+                    if n in online_users or n == '📢' else None)
         else:
             toast(f"🎉Welcome back, {nickname}")
         set_cookie("name", nickname, 7)
