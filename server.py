@@ -135,6 +135,8 @@ def action_new(self, cards: List[Card], last_card: Card, is_last_player_drop: bo
 SpecialCard.__json__ = types.MethodType(lambda self: {'value': repr(self)}, SpecialCard)
 NumericCard.__json__ = types.MethodType(lambda self: {'value': repr(self)}, NumericCard)
 
+Player.action_old = copy.deepcopy(Player.action)
+
 # -----------------------------------------------------------------------------
 
 import asyncio
@@ -192,23 +194,29 @@ async def refresh_msg(my_name):
         notend = True
         cur_id, last_card, is_last_player_drop, plus_two_cnt, hands = game.get_info()
 
+        # try:
         if(game.is_not_end()):
             update_status(my_name)
             if (cur == online_users.index(my_name) and cur == (cur_id + 1) % max_player_num): # Human
-                Player.action_old = Player.action
                 Player.action = types.MethodType(action_new, Player)
                 local.action = await action_re(hands[cur].get_cards(), last_card, is_last_player_drop)
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"{my_name}", action)))
                 cur = (info[0] + 1) % max_player_num
-                Player.action = Player.action_old
-                
             elif (len(online_users) > cur and online_users[cur] == "") or (cur >= len(online_users)):
-                # Robot played by Player.action() from your ONU_source
+                # Robot played by your own action
+                Player.action = Player.action_old
                 action, info, notend = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"🤖{cur + 1}", action)))
                 cur = (info[0] + 1) % max_player_num
                 await asyncio.sleep(0.5)
+        # except ValueError: # NoneType means player didn't finish dropping a card successfully
+        #     Player.action = Player.action_old
+        #     if(game.is_not_end()):
+        #         action, info, notend = game.turn()
+        #         chat_msgs.append(("🎴", htmlize(f"🤖{cur + 1}", action)))
+        #         cur = (info[0] + 1) % max_player_num
+        #         await asyncio.sleep(0.5)
             
         update_status(my_name)
         if not notend: # Ended
