@@ -491,7 +491,7 @@ you can also experience a profound sense of accomplishment.
 Interested in inviting your ShanghaiTech friends to play along?
 Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the following URL:
 
-[http://{session_info.user_ip}:{PORT}](http://{session_info.user_ip}:{PORT})
+[http://{session_info.server_host}](http://{session_info.server_host})
 
 ***References:***
 [Chat_Room - PyWebIO Demo](https://github.com/wang0618/PyWebIO/blob/dev/demos/chat_room.py)
