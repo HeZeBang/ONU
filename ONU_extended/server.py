@@ -8,7 +8,7 @@ COLORS = [col for col in Color]
 Available Color
 '''
 
-EFFECTS = [Effect.BAN, Effect.CHANGE_COLOR, Effect.PLUS_TWO]
+EFFECTS = [eff for eff in Effect]
 '''
 Available Effect
 '''
@@ -55,23 +55,24 @@ cur_player = 0
 async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: bool) -> Tuple[ActionType, Card | None]: 
     '''
     This `action` is rewrited.
-    '''
-    def match(toMatch: Card, other: Card) -> bool:
+    ''' 
+    def match_card(toMatch : Card, other : Card) -> bool:
         if other is None:
             return True
+        if toMatch.get_color() == other.get_color():
+            return True
         if isinstance(toMatch, NumericCard):
-            return (toMatch.get_color() == other.get_color()
-                    or (isinstance(other, NumericCard) and toMatch.get_number() == other.get_number()))
-        if isinstance(toMatch, SpecialCard):
-            if toMatch.get_effect() == Effect.CHANGE_COLOR:
+            if isinstance(other, NumericCard):
+                return toMatch.get_number() == other.get_number()
+            return False
+        elif isinstance(toMatch, SpecialCard):
+            if toMatch.get_effect() == Effect.CHANGE_COLOR or toMatch.get_effect() == Effect.PLUS_FOUR:
                 return True
-            if toMatch.get_effect() == Effect.BAN:
-                return (toMatch.get_color() == other.get_color() 
-                        or type(other) == SpecialCard and other.get_effect() == toMatch.get_effect())
-            if toMatch.get_effect() == Effect.PLUS_TWO:
-                return (toMatch.get_color() == other.get_color()
-                        or type(other) == SpecialCard and other.get_effect() == toMatch.get_effect())
-    valid_cards = [i for i in cards if match(i, last_card)]
+            if isinstance(other, SpecialCard) and toMatch.get_effect() == other.get_effect():
+                return True
+            return False
+        return False
+    valid_cards = [i for i in cards if match_card(i, last_card)]
     if(is_last_player_drop):
         if(isinstance(last_card, SpecialCard)):
             if last_card.get_effect() == Effect.BAN:
@@ -81,26 +82,33 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
             if last_card.get_effect() == Effect.PLUS_TWO:
                 p2_cards = [i for i in cards if isinstance(i, SpecialCard) and i.get_effect() == Effect.PLUS_TWO]
                 if len(p2_cards) == 0:
-                    toast("😭Oops, you have NO PLUS_TWO cards!", color='warning')
+                    toast("😭Oops, you have NO Plus-Two cards!", color='warning')
                     await asyncio.sleep(1)
                     return ActionType.PASS, None
                 valid_cards = p2_cards
+            if last_card.get_effect() == Effect.PLUS_FOUR:
+                p4_cards = [i for i in cards if isinstance(i, SpecialCard) and i.get_effect() == Effect.PLUS_FOUR]
+                if len(p4_cards) == 0:
+                    toast("😭Oops, you have NO Plus-Four cards!", color='warning')
+                    await asyncio.sleep(1)
+                    return ActionType.PASS, None
+                valid_cards = p4_cards
 
     if valid_cards:
-        toast("Your Turn!", color="success")
+        toast("Your Turn!", color = "success")
         scroll_to("cards")
         idx = -1
         while(idx == -1):
-            ret = await actions("Your Turn!",card_buttons(valid_cards, cards))
+            ret = await actions("Your Turn!", card_buttons(valid_cards, cards))
             if ret == -1:
                 run_js("toggleValid([])")
-                return ActionType.PASS, None
+                return ActionType.DRAW, None
             idx = int(await eval_js("playCard()"))
             if cards[idx] not in valid_cards:
                 idx = -1
         return ActionType.DROP, cards[idx]
     
-    toast("😭Oops, you have NO valid cards!", color='warning')
+    toast("😭Oops, you have NO valid cards!", color = 'warning')
     await asyncio.sleep(1)
     return ActionType.DRAW, None
 
@@ -167,7 +175,9 @@ COLORMAPPING = {
 EFFECTMAPPING = {
     Effect.BAN  : "🚫",
     Effect.CHANGE_COLOR: "🎨",
-    Effect.PLUS_TWO: "➕2️⃣"
+    Effect.PLUS_TWO: "➕2️⃣",
+    Effect.REVERSE : "🔄️",
+    Effect.PLUS_FOUR: "➕4️⃣"
 }
 
 def init_card_style():
@@ -392,20 +402,20 @@ async def refresh_msg(myName):
         # try:
         if(game.is_not_end()):
             update_status(myName)
-            if (cur_player == online_users.index(myName) and cur_player == (cur_player_id + 1) % max_player_num): # Human
+            if (cur_player == online_users.index(myName) and cur_player == (cur_player_id + game.get_next_acc()) % max_player_num): # Human
                 Player.action = types.MethodType(action_new, Player)
                 local.action = await action_re(hands[cur_player].get_cards(), last_card, is_last_player_drop)
                 action, info, notEnd = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"{myName}", action)))
                 # scroll_to("msg-box")
-                cur_player = (info[0] + 1) % max_player_num
+                cur_player = (info[0] + game.get_next_acc()) % max_player_num
             elif (len(online_users) > cur_player and online_users[cur_player] == "") or (cur_player >= len(online_users)):
                 # Robot played by your own action
                 Player.action = Player.action_old
                 action, info, notEnd = game.turn()
                 chat_msgs.append(("🎴", htmlize(f"🤖{cur_player + 1}", action)))
                 # scroll_to("msg-box")
-                cur_player = (info[0] + 1) % max_player_num
+                cur_player = (info[0] + game.get_next_acc()) % max_player_num
                 await asyncio.sleep(0.5)
         # except ValueError: # NoneType means player didn't finish dropping a card successfully
         #     Player.action = Player.action_old
@@ -434,7 +444,7 @@ def update_status(myName):
     Update Player's info and Game's info
     """
     statusNew = (online_users.index(myName) + 1, sum([i != "" for i in online_users]),
-                cur_player + 1, max_player_num)
+                cur_player + 1, max_player_num, "Reversed" if game.get_reverse() else "Normal")
     userLst = [_ if _ != "" else "ROBOT" for _ in online_users] + ["ROBOT" for _ in range(max_player_num - len(online_users))]
     scoreNew = [f"{len(game.get_info()[4][i].get_cards())}🎴" for i in range(max_player_num)]
     cardsNew = game.get_info()[4][online_users.index(myName)].get_cards()
@@ -447,7 +457,7 @@ def update_status(myName):
                 break
         clear("status")
         put_markdown(f"Your name: `{myName}` - `(#{online_users.index(myName) + 1})`\n"
-                        + "Online: `%d/%d` Player: `%d/%d`" % statusNew, scope="status")
+                        + "Online: `%d/%d` Player: `%d/%d`\nOrder: `%s`" % statusNew, scope="status")
     if(local.score != scoreNew):
         clear("score")
         put_table(list(zip(userLst,
@@ -481,7 +491,7 @@ async def main():
 f"""
 [![Static Badge](https://img.shields.io/badge/Github-ONU-black?logo=github&link=https%3A%2F%2Fgithub.com%2FHeZeBang%2FONU)](https://github.com/HeZeBang/ONU) [![Latest](https://img.shields.io/github/v/tag/HeZeBang/ONU?label=Latest%20Version)](https://github.com/HeZeBang/ONU/releases) [![Last Update](https://img.shields.io/github/release-date-pre/HeZeBang/ONU?label=Last%20Update)](https://github.com/HeZeBang/ONU/commits/main)
 
-🎉 Welcome to `ONU!` <sup>{Ex}</sup>, a game designed for everyone in the **SI100B** course.
+🎉 Welcome to `ONU!` <sup>Ex</sup>, a game designed for everyone in the **SI100B** course.
 
 **The core logic of this game stems from your very own `ONU` class!** 
 We've taken the initiative to adapt certain modules to ensure seamless gameplay on your web browser. 
@@ -498,14 +508,14 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
 """), open = True)
 
     put_row([
-                put_scrollable(put_scope('msg-box'), height=250, keep_bottom=True), 
+                put_scrollable(put_scope('msg-box'), height=260, keep_bottom=True), 
                 None,
                 put_column(
                     [
                         put_scope("status"), 
                         None,
                         put_scrollable([put_scope("score")], height=192)
-                    ], size='20% 5px 80%')
+                    ], size='25% 10px 75%')
             ],
             size='72% 5px 28%')
     try:
