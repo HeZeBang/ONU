@@ -1,4 +1,7 @@
-from ONU_source.template import * # Your ONU File
+try:
+    from ONU_source.template import * # Your ONU File
+except :
+    from ONU_source.core_asta import * 
 __version__ = "v1.1.0-alpha"
 
 # ---------------------------- Game Settings From UNO source file ----------------------------------
