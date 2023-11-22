@@ -358,6 +358,40 @@ def colorful_cards(cards: List[Card]):
 def htmlize(who: str, action: Tuple) -> str:
     return f"<code>{who}</code>&emsp;<b>{action[0].name}</b>&emsp;" + (f"{msg_card(action[1])}" if action[1] is not None else "")
 
+# ----------------------------- Splash Image ----------------------------------
+import base64
+
+def splash():
+    add_style_dyn({
+        "#splash-container":
+"""
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeInOut 2s ease-in-out;
+""","@keyframes fadeInOut":
+"""
+0% {
+    opacity: 0;
+}
+25% {
+    opacity: 1;
+}
+75% {
+    opacity: 1;
+}
+100% {
+    opacity: 0;
+}"""})
+    put_html(f'<div id="splash-container"><img id="splash-image" src="data:image/png;base64,{str(base64.b64encode(open("Game,Start!.png", "rb").read()), encoding="utf-8")}" alt="Splash Image"></div>')
+    
+
 async def refresh_msg(myName):
     """
     send new message to cur_playerrent session
@@ -508,6 +542,7 @@ Simply have them connect to the **WIFI:** 🌐 `ShanghaiTech` and open the follo
                     ], size='20% 5px 80%')
             ],
             size='72% 5px 28%')
+    splash()
     try:
         nickname = await get_cookie('name')
         if(nickname is None or nickname in online_users):
