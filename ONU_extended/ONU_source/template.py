@@ -1,4 +1,4 @@
-# ONU template by Asta
+# ONU extended template by Asta
 
 from enum import IntEnum, unique
 from typing import Tuple, List

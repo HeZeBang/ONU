@@ -97,8 +97,7 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
             ret = await actions("Your Turn!",card_buttons(valid_cards, cards))
             if ret == -1:
                 run_js("toggleValid([])")
-                if is_last_player_drop and isinstance(last_card, SpecialCard) \
-                                       and (last_card.get_effect() == Effect.PLUS_TWO or last_card.get_effect() == Effect.PLUS_FOUR):
+                if is_last_player_drop and isinstance(last_card, SpecialCard) and last_card.get_effect() == Effect.PLUS_TWO :
                     return ActionType.PASS, None
                 return ActionType.DRAW, None
             idx = int(await eval_js("playCard()"))
