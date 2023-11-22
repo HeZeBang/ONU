@@ -92,12 +92,15 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
     if valid_cards:
         toast("Your Turn!", color="success")
         scroll_to("cards")
+        global game
         idx = -1
         while(idx == -1):
             ret = await actions("Your Turn!",card_buttons(valid_cards, cards))
             if ret == -1:
                 run_js("toggleValid([])")
-                return ActionType.PASS, None
+                if is_last_player_drop and isinstance(last_card, SpecialCard) and last_card.get_effect() == Effect.PLUS_TWO :
+                    return ActionType.PASS, None
+                return ActionType.DRAW, None
             idx = int(await eval_js("playCard()"))
             if cards[idx] not in valid_cards:
                 idx = -1
@@ -322,7 +325,7 @@ def card_buttons(valid_cards: List[Card], all_cards: List[Card]):
     '''
     run_js(f"toggleValid({str([i for i in range(len(all_cards)) if all_cards[i] not in valid_cards])})")
     lstBtn = [{
-                    "label":"PASS",
+                    "label":"PASS / DRAW",
                     "value":-1,
                     "color":"danger",
               },{
