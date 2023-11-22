@@ -1,4 +1,7 @@
-from ONU_source.template import * # Your ONU File
+try:
+    from ONU_source.template import * # Your ONU File
+except :
+    from ONU_source.core_asta import * 
 __version__ = "v1.1.0-alpha"
 
 # ---------------------------- Game Settings From UNO source file ----------------------------------
@@ -94,10 +97,9 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
             ret = await actions("Your Turn!",card_buttons(valid_cards, cards))
             if ret == -1:
                 run_js("toggleValid([])")
-                '''
-                buttom PASS here means the player choose to draw a card
-                The logic is different from PASS in Action Type
-                '''
+                if is_last_player_drop and isinstance(last_card, SpecialCard) \
+                                       and (last_card.get_effect() == Effect.PLUS_TWO or last_card.get_effect() == Effect.PLUS_FOUR):
+                    return ActionType.PASS, None
                 return ActionType.DRAW, None
             idx = int(await eval_js("playCard()"))
             if cards[idx] not in valid_cards:

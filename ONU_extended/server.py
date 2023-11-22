@@ -1,5 +1,5 @@
 from ONU_source.template import * # Your ONU File
-__version__ = "ex-v1.1.0-alpha"
+__version__ = "ex-v1.1.0"
 
 # ---------------------------- Game Settings From UNO source file ----------------------------------
 
