@@ -92,7 +92,6 @@ async def action_re(cards: List[Card], last_card: Card, is_last_player_drop: boo
     if valid_cards:
         toast("Your Turn!", color="success")
         scroll_to("cards")
-        global game
         idx = -1
         while(idx == -1):
             ret = await actions("Your Turn!",card_buttons(valid_cards, cards))
