@@ -1,10 +1,8 @@
 # Original ONU
 
-/ONU_source/template.py
 /ONU_source/__pycache__/
 temp.py
 
 # ONU extended
 
-/ONU_extended/ONU_source/template.py
 /ONU_extended/ONU_source/__pycache__/
