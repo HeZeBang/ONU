@@ -324,8 +324,8 @@ def card_buttons(valid_cards: List[Card], all_cards: List[Card]):
     '''
     run_js(f"toggleValid({str([i for i in range(len(all_cards)) if all_cards[i] not in valid_cards])})")
     lstBtn = [{
-                    "label":"PASS",
-                    "value": -1,
+                    "label":"PASS / DRAW",
+                    "value":-1,
                     "color":"danger",
               },{
                     "label":"DROP!",
